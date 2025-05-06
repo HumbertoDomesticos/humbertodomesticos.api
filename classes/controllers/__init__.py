@@ -1,2 +1,0 @@
-from .ProdutoController import ProdutoController
-from .AccessController import AccessController
