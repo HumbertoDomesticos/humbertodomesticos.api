@@ -1,4 +1,4 @@
-# API para busca e criação de Agendamentos #
+# API para o projeto HumbertoDomesticos #
 
 Para iniciar o servidor da API apenas para a máquina local, use:
 ```
