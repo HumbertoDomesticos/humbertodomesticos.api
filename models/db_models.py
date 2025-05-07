@@ -23,8 +23,14 @@ class ProdutosDB(Base):
     nome_prod: Mapped[str] = mapped_column(String(200))
     preco_prod: Mapped[float] = mapped_column(DECIMAL(10, 2))
     desconto_prod: Mapped[int] = mapped_column(Integer, index=True)
+    
     images_prod: Mapped[list["ImagesDB"]] = relationship()
-    # ? Adicionar 
+    
+    @validates("images_prod")
+    def convert(self, _, value) -> ImagesDB:
+        if value and isinstance(value, dict):
+            return ImagesDB(**value)
+        return value   
     
 connection_string = "mysql+mysqlconnector://root:root@localhost:3306/db_humb"
 engine = create_engine(connection_string, echo=True)

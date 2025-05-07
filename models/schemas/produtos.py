@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from decimal import Decimal
 from typing import Annotated, List, Any
 from .images import ImageCreate
@@ -12,4 +12,4 @@ class ProdutosResponse(ProdutosBase):
     id_prod: int
 
 class ProdutosCreate(ProdutosBase):
-    images_prod: Annotated[List[ImageCreate], Field(title="Images do produto")]
+    images_prod: Annotated[List[ImageCreate], Field(title="Images do produto", min_length=1, max_length=4)]
