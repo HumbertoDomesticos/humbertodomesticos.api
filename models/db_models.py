@@ -32,6 +32,27 @@ class ProdutosDB(Base):
             return ImagesDB(**value)
         return value   
     
+class UsuariosDB(Base):
+    __tablename__ = 'usuarios'
+
+    id_usuario: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    nome_usuario: Mapped[str] = mapped_column(String(50))
+    email_usuario: Mapped[str] = mapped_column(String(50))
+    senha_usuario: Mapped[str] = mapped_column(String(50))
+
+    # TODO Checar se essa será a estrutura usada
+
+class CarrinhosDB(Base):
+    __tablename__ = 'carrinhos'
+
+    id_carrinho: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+
+class PedidosBD(Base):
+    __tablename__ = 'pedidos'
+
+    id_pedido: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    id_usuario_pedido: Mapped[int] = mapped_column(ForeignKey('usuarios.id_usuario')) 
+    
 connection_string = "mysql+mysqlconnector://root:root@localhost:3306/db_humb"
 engine = create_engine(connection_string, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
