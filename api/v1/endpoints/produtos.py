@@ -21,3 +21,14 @@ async def criar_produto(
     db_produto = ProdutosDB(**produto.model_dump())
     db.add(db_produto)
     db.commit()
+
+@router.patch('/')
+async def alterar_produto(
+    id_prod: Annotated[int, Query(description="Id do produto")],
+    produto: produtos.ProdutosPatch,
+    db: db_dependency 
+):
+    print(produto.model_dump(exclude_defaults=True))
+    #db.query(ProdutosDB).filter(ProdutosDB.id_prod == id_prod).update(produto.model_dump(exclude_defaults=True))
+    #db.commit()
+    return

@@ -38,7 +38,7 @@ class UsuariosDB(Base):
     id_usuario: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     nome_usuario: Mapped[str] = mapped_column(String(50))
     email_usuario: Mapped[str] = mapped_column(String(50))
-    senha_usuario: Mapped[str] = mapped_column(String(50))
+    senha_usuario: Mapped[str] = mapped_column(String(1000))
 
     # TODO Checar se essa será a estrutura usada
 
