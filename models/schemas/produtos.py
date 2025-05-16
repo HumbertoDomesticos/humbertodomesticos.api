@@ -8,6 +8,9 @@ class ProdutosBase(BaseModel):
     nome_prod: Annotated[str, Field(title="Nome do produto", default='string')]
     preco_prod: Annotated[Decimal, Field(title="Preço do produto", ge=0, decimal_places=2, default=Decimal('0'))]
     desconto_prod: Annotated[int, Field(title="Desconto do produto", ge=0, le=100, default=0)]
+    
+    def model_post_init(self, __context):
+        self.preco_prod = str(self.preco_prod).replace('.', ',')
 
 class ProdutosResponse(ProdutosBase):
     id_prod: int
