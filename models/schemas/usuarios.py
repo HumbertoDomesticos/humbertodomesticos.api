@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import Annotated, List, Any
 from datetime import date
-from .dependecies import convert_to_option
+from .dependecies import convert_to_optional
 
 class UsuarioBase(BaseModel):
     nome_usuario: Annotated[str, Field(description="Nome que será mostrado no perfil do usuário")]
@@ -15,4 +15,4 @@ class UsuarioRegister(UsuarioBase):
     senha_hash_usuario: Annotated[str, Field(description="Senha do usuário em hash BCRYPT")]
 
 class UsuarioPatch(UsuarioRegister):
-    __annotations__ = convert_to_option(UsuarioRegister)
+    __annotations__ = convert_to_optional(UsuarioRegister)

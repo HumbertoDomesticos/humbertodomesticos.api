@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, create_engine, Float, Integer, DECIMAL
+from sqlalchemy import String, ForeignKey, create_engine, Float, Integer, DECIMAL, Table, Column
 from decimal import Decimal
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker, validates
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -26,11 +26,27 @@ class ProdutosDB(Base):
     
     images_prod: Mapped[list["ImagesDB"]] = relationship()
     
+    categorias: Mapped[List["CategoriasDB"]] = relationship("CategoriasDB", secondary="em_categoria", back_populates="produtos")
+    
     @validates("images_prod")
     def convert(self, _, value) -> ImagesDB:
         if value and isinstance(value, dict):
             return ImagesDB(**value)
         return value   
+    
+class CategoriasDB(Base):
+    __tablename__ = 'categorias'
+    
+    id_categoria: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    descritivo_categoria: Mapped[str] = mapped_column(String(50))
+    
+    produtos: Mapped[List[ProdutosDB]] = relationship(ProdutosDB, secondary="em_categoria", back_populates="categorias")
+    
+    
+em_categoria = Table('em_categoria', Base.metadata,
+    Column('id_categoria', Integer, ForeignKey('categorias.id_categoria'), primary_key=True),
+    Column('id_produto', Integer, ForeignKey('produtos.id_prod'), primary_key=True)
+)
     
 class UsuariosDB(Base):
     __tablename__ = 'usuarios'
@@ -39,6 +55,7 @@ class UsuariosDB(Base):
     nome_usuario: Mapped[str] = mapped_column(String(50))
     email_usuario: Mapped[str] = mapped_column(String(50))
     senha_usuario: Mapped[str] = mapped_column(String(1000))
+    admin_usuario: Mapped[bool] = mapped_column(default=False)
 
     # TODO Checar se essa será a estrutura usada
 
