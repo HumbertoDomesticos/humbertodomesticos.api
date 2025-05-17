@@ -1,9 +1,8 @@
-from sqlalchemy import String, ForeignKey, create_engine, Float, Integer, DECIMAL, Table, Column
+from sqlalchemy import String, ForeignKey, create_engine, Float, Integer, DECIMAL, Table, Column, Date
 from decimal import Decimal
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import association_proxy
-from datetime import datetime
 from typing import List
 
 class Base(DeclarativeBase):
@@ -56,6 +55,7 @@ class UsuariosDB(Base):
     id_usuario: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     nome_usuario: Mapped[str] = mapped_column(String(50))
     email_usuario: Mapped[str] = mapped_column(String(50))
+    data_nasc_usuario: Mapped[Date] = mapped_column(Date)
     senha_usuario: Mapped[str] = mapped_column(String(1000))
     admin_usuario: Mapped[bool] = mapped_column(default=False)
 
