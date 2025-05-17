@@ -5,11 +5,11 @@ from .categorias import CategoriasResponse
 from .produtos import ProdutosResponse
 
 class ProdutoCategoriasResponse(ProdutosResponse):
-    categorias: List[CategoriasResponse]
+    categorias: Annotated[List[CategoriasResponse], Field(description="Categorias de um produto")]
     
 class CategoriaProdutosResponse(CategoriasResponse):
-    produtos: List[ProdutosResponse]
+    produtos: Annotated[List[ProdutosResponse], Field(description="Produtos dentro de uma categoria")]
     
 class EmCategoriaCreate(BaseModel):
-    id_categoria: int
-    id_produto: int
+    id_categoria: Annotated[int, Field(description="Id da categoria")]
+    id_produto: Annotated[int, Field(description="Id do produto")]
