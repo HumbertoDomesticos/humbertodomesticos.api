@@ -24,6 +24,7 @@ class ProdutosDB(Base):
     preco_prod: Mapped[float] = mapped_column(DECIMAL(10, 2))
     desconto_prod: Mapped[int] = mapped_column(Integer, index=True)
     estoque_prod: Mapped[int] = mapped_column()
+    ativo_prod: Mapped[bool] = mapped_column(default=True)
     
     images_prod: Mapped[list["ImagesDB"]] = relationship()
     
@@ -54,7 +55,7 @@ class UsuariosDB(Base):
     id_usuario: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     nome_usuario: Mapped[str] = mapped_column(String(50))
     cpf_usuario: Mapped[str] = mapped_column(String(11), default="00000000000")
-    email_usuario: Mapped[str] = mapped_column(String(50))
+    email_usuario: Mapped[str] = mapped_column(String(50), unique=True)
     data_nasc_usuario: Mapped[Date] = mapped_column(Date)
     senha_usuario: Mapped[str] = mapped_column(String(1000))
     admin_usuario: Mapped[bool] = mapped_column(default=False)

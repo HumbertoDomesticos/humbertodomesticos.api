@@ -9,9 +9,9 @@ class UsuarioBase(BaseModel):
     email_usuario: Annotated[EmailStr, Field(description="Email do usuário")]
     data_nasc_usuario: Annotated[date, Field(description="Data de nascimento do usuário")]
     cpf_usuario: Annotated[str, Field(description="Cpf do usuário", default="00000000000")]
-    ativo_usuario: Annotated[bool, Field(description="Se a conta do usuário ainda está ativa")]
 
 class UsuarioResponse(UsuarioBase):
+    ativo_usuario: Annotated[bool, Field(description="Se a conta do usuário ainda está ativa")]
     def model_post_init(self, __context):
         self.cpf_usuario = "{}.{}.{}-{}".format(self.cpf_usuario[:3], self.cpf_usuario[3:6], self.cpf_usuario[6:9], self.cpf_usuario[9:])
 
@@ -29,4 +29,6 @@ class UsuarioPatch(UsuarioCreate):
     
 class UsuarioAuth(BaseModel):
     email_usuario: Annotated[EmailStr, Field(description="Email do usuário")]
+    
+class UsuarioAuthLogin(UsuarioAuth):
     senha_usuario: Annotated[str, Field(description="Senha do usuário")]

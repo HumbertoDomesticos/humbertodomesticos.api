@@ -30,7 +30,6 @@ async def alterar_produto(
     db: db_dependency 
 ):
     print(produto.model_dump(exclude_defaults=True))
-    
     return
 
 @router.post('/add-categoria')

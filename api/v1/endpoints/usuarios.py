@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Path, Query, HTTPException
+from pydantic import EmailStr
 from passlib.context import CryptContext
 from sqlalchemy import update
 from typing import List, Annotated
@@ -40,9 +41,30 @@ async def delete_usuario(
     db.commit()
     return 
 
+@router.post('/admin')
+async def set_admin_usuario(
+    id_usuario: Annotated[int, Query(description="Id do usuário")],
+    db: db_dependency
+):
+    query = update(UsuariosDB).where(UsuariosDB.id_usuario == id_usuario).values(admin_usuario = True)  
+    db.execute(query)
+    db.commit()
+    return
+
+@router.get('/auth')
+async def auth_admin_usuario(
+    email_usuario: Annotated[EmailStr, Query(description="Email do usuário")],
+    db: db_dependency
+):
+    query = db.query(UsuariosDB).filter(UsuariosDB.email_usuario == email_usuario).first()
+    if query.admin_usuario:
+        return True
+    else:
+        return False
+
 @router.post('/auth')
 async def auth_usuario(
-    usuario: usuarios.UsuarioAuth,
+    usuario: usuarios.UsuarioAuthLogin,
     db: db_dependency
 ):
     query = db.query(UsuariosDB).filter(UsuariosDB.email_usuario == usuario.email_usuario).first()
