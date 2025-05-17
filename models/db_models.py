@@ -43,7 +43,6 @@ class CategoriasDB(Base):
     
     produtos: Mapped[List[ProdutosDB]] = relationship(ProdutosDB, secondary="em_categoria", back_populates="categorias")
     
-    
 em_categoria = Table('em_categoria', Base.metadata,
     Column('id_categoria', Integer, ForeignKey('categorias.id_categoria'), primary_key=True),
     Column('id_produto', Integer, ForeignKey('produtos.id_prod'), primary_key=True)
@@ -54,10 +53,12 @@ class UsuariosDB(Base):
 
     id_usuario: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     nome_usuario: Mapped[str] = mapped_column(String(50))
+    cpf_usuario: Mapped[str] = mapped_column(String(11), default="00000000000")
     email_usuario: Mapped[str] = mapped_column(String(50))
     data_nasc_usuario: Mapped[Date] = mapped_column(Date)
     senha_usuario: Mapped[str] = mapped_column(String(1000))
     admin_usuario: Mapped[bool] = mapped_column(default=False)
+    ativo_usuario: Mapped[bool] = mapped_column(default=True)
 
     # TODO Checar se essa será a estrutura usada
 
