@@ -7,16 +7,20 @@ from models.db_models import UsuariosDB
 from models.schemas import usuarios
 from main import db_dependency
 
+from .enderecos import router as endereco_router
+
 router = APIRouter(prefix='/usuarios', tags=['usuarios'])
 
-@router.get('/')
+router.include_router(endereco_router)
+
+@router.get('/', description="Busca por usuários")
 async def get_usuarios(
     db: db_dependency
 ) -> List[usuarios.UsuarioResponse]|usuarios.UsuarioResponse:
     db_usuarios = db.query(UsuariosDB).all()
     return db_usuarios
 
-@router.post('/')
+@router.post('/', description="Insere um novo usuário ao banco de dados, endpoint relacionado com o registro de usuários")
 async def insert_usuario(
     usuario: usuarios.UsuarioCreate,
     db: db_dependency
@@ -25,13 +29,13 @@ async def insert_usuario(
     db.add(db_usuario)
     db.commit()
 
-@router.patch('/')
+@router.patch('/', description="Altera os dados de um usuário") # TODO Implementar a alteração de usuário
 async def update_usuario(
     db: db_dependency
 ):
     pass
 
-@router.delete('/')
+@router.delete('/', description="Altera o 'estado' de um usuário (ativo ou inativo)")
 async def delete_usuario(
     id_usuario: Annotated[str, Query(description="Usuário de Id")],
     db: db_dependency
@@ -41,7 +45,7 @@ async def delete_usuario(
     db.commit()
     return 
 
-@router.post('/admin')
+@router.post('/admin', description="Transforma um usuário em um administrador")
 async def set_admin_usuario(
     id_usuario: Annotated[int, Query(description="Id do usuário")],
     db: db_dependency
@@ -51,7 +55,7 @@ async def set_admin_usuario(
     db.commit()
     return
 
-@router.get('/auth')
+@router.get('/auth', description="Busca se um usuário é um usuário")
 async def auth_admin_usuario(
     email_usuario: Annotated[EmailStr, Query(description="Email do usuário")],
     db: db_dependency
@@ -62,7 +66,7 @@ async def auth_admin_usuario(
     else:
         return False
 
-@router.post('/auth')
+@router.post('/auth', description="Faz a autenticação para login do usuário no banco de dados")
 async def auth_usuario(
     usuario: usuarios.UsuarioAuthLogin,
     db: db_dependency

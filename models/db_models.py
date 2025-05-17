@@ -1,5 +1,6 @@
-from sqlalchemy import String, ForeignKey, create_engine, Float, Integer, DECIMAL, Table, Column, Date
+from sqlalchemy import String, ForeignKey, create_engine, Float, Integer, DECIMAL, Table, Column, Date, Enum
 from decimal import Decimal
+import enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -7,6 +8,9 @@ from typing import List
 
 class Base(DeclarativeBase):
     pass
+
+class UnidadesFederativasEnum(str, enum.Enum):
+    sp = 'sp'
 
 class ImagesDB(Base):
     __tablename__ = 'prod_images'
@@ -62,6 +66,25 @@ class UsuariosDB(Base):
     ativo_usuario: Mapped[bool] = mapped_column(default=True)
 
     # TODO Checar se essa será a estrutura usada
+    
+class EnderecosDB(Base):
+    __tablename__ = 'enderecos'
+    
+    id_endereco: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    id_usuario: Mapped[int] = mapped_column(ForeignKey('usuarios.id_usuario'))
+    rua_endereco: Mapped[str] = mapped_column(String(100))
+    numero_endereco: Mapped[str] = mapped_column(String(10))
+    bairro_endereco: Mapped[str] = mapped_column(String(100))
+    cidade_endereco: Mapped[str] = mapped_column(String(100))
+    uf_endereco: Mapped[Enum] = mapped_column(Enum(UnidadesFederativasEnum))
+    padrao_endereco: Mapped[bool] = mapped_column(default=False) # TODO Alterar para True quando ele é inserido com o registro do usuário
+    
+class TelefonesDB(Base):
+    __tablename__ = 'telefones'
+    
+    id_telefone: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    id_usuario: Mapped[int] = mapped_column(ForeignKey('usuarios.id_usuario'))
+    numero_telefone: Mapped[str] = mapped_column(String(50)) # FIXME Trocar para a quantidade específica que será usada
 
 class CarrinhosDB(Base):
     __tablename__ = 'carrinhos'
