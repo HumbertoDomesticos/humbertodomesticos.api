@@ -21,8 +21,10 @@ class ProdutosDB(Base):
 
     id_prod: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     nome_prod: Mapped[str] = mapped_column(String(200))
+    descricao_prod: Mapped[str] = mapped_column(String(2000))
     preco_prod: Mapped[float] = mapped_column(DECIMAL(10, 2))
     desconto_prod: Mapped[int] = mapped_column(Integer, index=True)
+    estoque_prod: Mapped[int] = mapped_column()
     
     images_prod: Mapped[list["ImagesDB"]] = relationship()
     

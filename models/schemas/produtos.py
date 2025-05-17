@@ -6,12 +6,15 @@ from .dependecies import convert_to_optional
 
 class ProdutosBase(BaseModel):
     nome_prod: Annotated[str, Field(title="Nome do produto", default='string')]
+    descricao_prod: Annotated[str, Field(title="Descrição do produto", default='string')]
     preco_prod: Annotated[Decimal, Field(title="Preço do produto", ge=0, decimal_places=2, default=Decimal('0'))]
     desconto_prod: Annotated[int, Field(title="Desconto do produto", ge=0, le=100, default=0)]
+    estoque_prod: Annotated[int, Field(ge=0)]
 
 class ProdutosResponse(ProdutosBase):
     id_prod: int
     preco_prod: float = Field(exclude=True)
+    estoque_prod: int = Field(ge=0)
     
     @computed_field
     @property
