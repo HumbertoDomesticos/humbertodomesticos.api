@@ -32,6 +32,15 @@ async def update_produto(
     print(produto.model_dump(exclude_defaults=True))
     return
 
+@router.delete('/')
+async def delete_produto(
+    id_prod: Annotated[int, Query(description="Id do produto")],
+    db: db_dependency
+):
+    produto = db.get(ProdutosDB, id_prod)
+    db.delete(produto)
+    db.commit()
+
 @router.get('/{id_prod}')
 async def get_produto(
     id_prod: Annotated[int, Path(description="Id do produto")],

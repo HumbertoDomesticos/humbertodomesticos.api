@@ -30,7 +30,7 @@ class ProdutosDB(Base):
     estoque_prod: Mapped[int] = mapped_column()
     ativo_prod: Mapped[bool] = mapped_column(default=True)
     
-    images_prod: Mapped[list["ImagesDB"]] = relationship()
+    images_prod: Mapped[list["ImagesDB"]] = relationship(cascade="all, delete-orphan")
     
     categorias: Mapped[List["CategoriasDB"]] = relationship("CategoriasDB", secondary="em_categoria", back_populates="produtos")
     
