@@ -4,7 +4,7 @@ import enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import association_proxy
-from typing import List
+from typing import List, Optional
 
 class Base(DeclarativeBase):
     pass
@@ -65,6 +65,7 @@ class UsuariosDB(Base):
     admin_usuario: Mapped[bool] = mapped_column(default=False)
     ativo_usuario: Mapped[bool] = mapped_column(default=True)
 
+    pedidos: Mapped[List["PedidosDB"]] = relationship()
     # TODO Checar se essa será a estrutura usada
     
 class EnderecosDB(Base):
@@ -90,12 +91,24 @@ class CarrinhosDB(Base):
     __tablename__ = 'carrinhos'
 
     id_carrinho: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    
+class EmPedidoDB(Base):
+    __tablename__ = 'em_pedido'
 
-class PedidosBD(Base):
+    id_em_pedido: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
+    id_pedido: Mapped[int] = mapped_column(ForeignKey('pedidos.id_pedido'))
+    id_produto: Mapped[int] = mapped_column(ForeignKey('produtos.id_prod'))
+    quantidade_em_pedido: Mapped[Optional[int]] = mapped_column(default=None)
+
+class PedidosDB(Base):
     __tablename__ = 'pedidos'
 
     id_pedido: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     id_usuario_pedido: Mapped[int] = mapped_column(ForeignKey('usuarios.id_usuario')) 
+    status_pedido: Mapped[bool] = mapped_column(default=True)
+    data_ultima_mudanca_pedido: Mapped[Date] = mapped_column(Date)
+    
+    produtos: Mapped[List[ProdutosDB]] = relationship(ProdutosDB, secondary="em_pedido")
     
 connection_string = "mysql+mysqlconnector://root:root@localhost:3306/db_humb"
 engine = create_engine(connection_string, echo=True)
