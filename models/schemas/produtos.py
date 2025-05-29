@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, computed_field
 from decimal import Decimal
 from typing import Annotated, List, Any, Optional
-from .images import ImageCreate
+from .images import ImageCreate, ImageResponse
 from .dependecies import convert_to_optional
 
 class ProdutosBase(BaseModel):
@@ -15,6 +15,7 @@ class ProdutosResponse(ProdutosBase):
     id_prod: Annotated[int, Field(description="Id do produto")]
     preco_prod: Annotated[float, Field(description="Preço do produto", exclude=True)]
     estoque_prod: Annotated[int, Field(title="Estoque do produto", ge=0)]
+    images_prod: Annotated[list[ImageResponse], Field(title="Imagens do produto")]
     
     @computed_field
     @property
