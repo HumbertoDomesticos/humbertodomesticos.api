@@ -3,15 +3,11 @@ from pydantic import EmailStr
 from passlib.context import CryptContext
 from sqlalchemy import update
 from typing import List, Annotated
-from models.db_models import UsuariosDB
-from models.schemas import usuarios
+from models.db_models import UsuariosDB, PedidosDB
+from models.schemas import usuarios, pedidos
 from main import db_dependency
 
-from .enderecos import router as endereco_router
-
 router = APIRouter(prefix='/usuarios', tags=['usuarios'])
-
-router.include_router(endereco_router)
 
 @router.get('/', description="Busca por usuários")
 async def get_usuarios(
@@ -79,4 +75,29 @@ async def auth_usuario(
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         if pwd_context.verify(usuario.senha_usuario, query.senha_usuario):
             return {"msg": "Senha está correta, mas a conta está inatíva"}
-    
+        else:
+            return False
+        
+@router.get('/{id_usuario}/pedidos', description="Busca o pedido atual desse usuário. Caso não haja pedido aberto, cria um novo")
+async def get_pedido_usuario(
+    id_usuario: Annotated[int, Path(description="Id do usuário")],
+    db: db_dependency
+):
+    stmt = db.get(UsuariosDB, id_usuario)
+    ultimo_pedido = stmt.pedidos[-1]
+    if ultimo_pedido.status_pedido:
+        return ultimo_pedido
+    else:
+        db.add(PedidosDB(**pedidos.PedidosCreate(id_usuario_pedido=id_usuario).model_dump()))
+        db.commit()
+        return stmt.pedidos[-1]
+        
+
+@router.get('/{id_usuario}/pedidos/fechar', description="Fecha o último pedido criado")
+async def close_pedido_usuario(
+    id_usuario: Annotated[int, Path(description="Id do usuário")],
+    db: db_dependency
+):
+    stmt = db.get(UsuariosDB, id_usuario)
+    stmt.pedidos[-1].status_pedido = False
+    db.commit()
