@@ -1,36 +1,53 @@
-from pydantic import BaseModel, Field, field_validator, computed_field
-from decimal import Decimal
-from typing import Annotated, List, Any, Optional
-from .images import ImageCreate, ImageResponse
-from .dependecies import convert_to_optional
+from pydantic import Field, field_validator, computed_field, BaseModel as Base
+from typing import List, Optional
+from core import QueryMeta
+from .categorias import CategoriaBase
+from .imagens import ImagemURL
 
-class ProdutosBase(BaseModel):
-    nome_prod: Annotated[str, Field(description="Nome do produto", default='string')]
-    descricao_prod: Annotated[str, Field(description="Descrição do produto", default='string')]
-    preco_prod: Annotated[Decimal, Field(description="Preço do produto", ge=0, decimal_places=2, default=Decimal('0'))]
-    desconto_prod: Annotated[int, Field(description="Desconto do produto", ge=0, le=100, default=0)]
-    estoque_prod: Annotated[int, Field(ge=0)]
+class ProdutoBase(Base):
+    descritivo_produto: Optional[str] = Field(default="", description="Nome do produto", examples=["nome_produto"])
+    descricao_produto: Optional[str] = Field(default="", description="Descrição do produto", examples=[""])
+    preco_produto: Optional[float] = Field(default=None, description="Preço do produto")
+    desconto_produto: Optional[int] = Field(default=None, description="Desconto do produto")
+    estoque_produto: Optional[int] = Field(default=None, description="Estoque do produto")
+    ativo_produto: Optional[bool] = Field(default=None, description="Produto está ativo ou não")
 
-class ProdutosResponse(ProdutosBase):
-    id_prod: Annotated[int, Field(description="Id do produto")]
-    preco_prod: Annotated[float, Field(description="Preço do produto", exclude=True)]
-    estoque_prod: Annotated[int, Field(title="Estoque do produto", ge=0)]
-    images_prod: Annotated[list[ImageResponse], Field(title="Imagens do produto")]
+class ProdutoId(Base):
+    id_produto: Optional[int] = Field(default=None, description="Id do produto")
+    
+class ProdutoResponse(ProdutoBase, ProdutoId):
+    preco_produto: Optional[float] = Field(exclude=True)
+    desconto_produto: Optional[int] = Field(exclude=True)
+    imagens: Optional[List[ImagemURL]] = Field(description="Imagens do produto")
+    categorias: Optional[List[CategoriaBase]] = Field(description="Categoria(s) do produto")
+
+    def format_float_to_money_string(self, float_value: float):
+        float_value_in_str = f"{float_value:.2f}"
+        return f"R$ {float_value_in_str.replace('.', ',')}"
+
+    @computed_field
+    @property
+    def preco(self) -> str:
+        return self.format_float_to_money_string(float_value = (self.preco_produto))
     
     @computed_field
     @property
-    def preco_produto(self) -> Annotated[str, Field(description="Preço do produto formatado")]:
-        return f"R${"%.2f" % self.preco_prod}".replace('.', ',')
+    def preco_descontado(self) -> str:
+        return self.format_float_to_money_string(float_value = (self.preco_produto * (1 - self.desconto_produto/100)))
     
     @computed_field
     @property
-    def desconto_preco_produto(self) -> Annotated[str, Field(description="Preço do produto com desconto e formatado")]:
-        return f"R${"%.2f" % (self.preco_prod * (1 - (self.desconto_prod / 100)))}".replace('.', ',')
+    def desconto(self) -> str:
+        if self.desconto_produto == 0:
+            return "Nenhum desconto"
+        else:
+            return f"{self.desconto_produto}%"
+    
+class ProdutoQuery(QueryMeta, ProdutoBase, ProdutoId):
+    pass
 
-class ProdutosCreate(ProdutosBase):
-    images_prod: Annotated[List[ImageCreate], Field(description="Images do produto", min_length=1, max_length=4, default_factory=list)]
-    # TODO Valor padrão NÃO tá funcionando, caso ele receba um valor padrão ele deve ignorar o valor e não mostrar nada
+class ProdutoCreate(ProdutoBase):
+    imagens: List[ImagemURL] = Field(description="Imagens do produto")
 
-class ProdutosPatch(ProdutosBase):
-    __annotations__ = convert_to_optional(ProdutosBase)
-    images_prod: Annotated[Optional[List[ImageCreate]], Field(description="Images do produto", min_length=1, max_length=4, default_factory=list)]
+class ProdutoUpdate(ProdutoCreate):
+    descritivo_produto: Optional[str] = Field(default=None, description="Nome do produto")

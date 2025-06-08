@@ -5,7 +5,6 @@ from .dependecies import convert_to_optional
 
 class ImageBase(BaseModel):
     path_image: Annotated[str, Field(description="Caminho ou link até a imagem", default="string")]
-    id_prod_image: Annotated[int, Field(description="ID do produto que está na foto", default=0)]
 
 class ImageResponse(ImageBase):
     id_image: Annotated[int, Field(description="ID da imagem", default=0)]

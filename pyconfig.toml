@@ -1,0 +1,8 @@
+[database_conn]
+user = 'root'
+password = 'root'
+host = 'localhost'
+port = '3306'
+db_name = 'db_humb'
+driver = ['postgresql+psycopg2', 'mysql+pymysql']
+echo = false

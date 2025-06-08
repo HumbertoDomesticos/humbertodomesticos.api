@@ -1,12 +1,21 @@
-from pydantic import BaseModel, Field
-from decimal import Decimal
-from typing import Annotated, List, Any
+from pydantic import Field, BaseModel as Base
+from typing import List, Optional
+from core import QueryMeta
 
-class CategoriasBase(BaseModel):
-    descritivo_categoria: Annotated[str, Field(description="Nome da categoria")]
+class CategoriaBase(Base):
+    descritivo_categoria: Optional[str] = Field(default="", description="Nome da categoria", examples=["nome_categoria"])
+    
+class CategoriaId(Base):
+    id_categoria: Optional[int] = Field(default=None, description="Id da categoria")
 
-class CategoriasResponse(CategoriasBase):
-    id_categoria: Annotated[int, Field(description="ID da categoria")]
-
-class CategoriasCreate(CategoriasBase):
+class CategoriaResponse(CategoriaBase, CategoriaId):
     pass
+    
+class CategoriaQuery(QueryMeta, CategoriaResponse, CategoriaId):
+    pass
+
+class CategoriaCreate(CategoriaBase):
+    pass
+
+class CategoriaUpdate(CategoriaCreate):
+    descritivo_categoria: Optional[str] = Field(default=None, description="Nome da categoria")

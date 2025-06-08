@@ -1,30 +1,65 @@
-from fastapi import APIRouter, Path, Query, HTTPException
-from typing import List, Annotated
+from fastapi import APIRouter, Query, Path
+from database import DbSessionDep, Session
+from typing import Dict, Tuple, List, Union, Annotated
+
+from core import apply_filters_from_model, get_pagination_response, PaginatedResponse, DEFAULT_NON_FILTER_FIELDS
+from models.schemas import categorias
 from models.db_models import CategoriasDB
-from models.schemas import categorias, em_categoria
-from main import db_dependency
 
-router = APIRouter(prefix='/categorias', tags=['categorias'])
+router = APIRouter(prefix="/categorias", tags=["Categorias"])
 
-@router.get('/')
-async def get_categorias(
-    db: db_dependency
-) -> List[em_categoria.CategoriaProdutosResponse]|em_categoria.CategoriaProdutosResponse:
-    db_categorias = db.query(CategoriasDB)
-    return db_categorias
+CATEGORIAS_FILTER_CONFIG: Dict[str, Tuple[str, str]] = {
+    "id_categoria": ("id_categoria", "eq"),
+    "descritivo_categoria": ("descritivo_categoria", "contains")
+}
+
+@router.get('/', response_model=PaginatedResponse[categorias.CategoriaResponse])
+def get_categorias(
+    query: categorias.CategoriaQuery = categorias.CategoriaQuery.as_query(),
+    db: Session = DbSessionDep
+):
+    stmt = db.query(CategoriasDB)
+    stmt = apply_filters_from_model(
+        stmt,
+        CategoriasDB,
+        query,
+        CATEGORIAS_FILTER_CONFIG,
+        DEFAULT_NON_FILTER_FIELDS
+    )
+    total = stmt.count()
+    resp_value = stmt.order_by(CategoriasDB.id_categoria.asc()).offset(query.offset).limit(query.limit).all()
+    return get_pagination_response(query.limit, query.offset, total, resp_value)
 
 @router.post('/')
-async def insert_categoria(
-    categoria: categorias.CategoriasCreate,
-    db: db_dependency
+def post_categorias(
+    body: Union[List[categorias.CategoriaCreate], categorias.CategoriaCreate],
+    db: Session = DbSessionDep
 ):
-    db_categoria = CategoriasDB(**categoria.model_dump())
-    db.add(db_categoria)
+    if isinstance(body, list):
+        for categoria in body:
+            db.add(CategoriasDB(**categoria.model_dump()))
+    else:
+        db.add(CategoriasDB(**body))
     db.commit()
-    
-@router.get('/produtos')
-async def get_produtos_categoria(
-    db: db_dependency
-) -> list[em_categoria.CategoriaProdutosResponse]:
-    query = db.query(CategoriasDB)
-    return query
+
+@router.patch('/', response_model=categorias.CategoriaResponse)
+def patch_categorias(
+    id_categoria: Annotated[int, Query(description="ID da categoria que será alterada")],
+    body: categorias.CategoriaUpdate,
+    db: Session = DbSessionDep
+):
+    dump_class = body.model_dump(exclude_unset=True)
+    stmt = db.get(CategoriasDB, id_categoria)
+    for k, val in dump_class.items():
+        if hasattr(stmt, k):
+            setattr(stmt, k, val)
+    db.commit()    
+
+@router.delete('/')
+def delete_categorias(
+    id_categoria: Annotated[int, Query(description="ID da categoria que será deletada")],
+    db: Session = DbSessionDep
+):
+    stmt = db.get(CategoriasDB, id_categoria)
+    db.delete(stmt)
+    db.commit()

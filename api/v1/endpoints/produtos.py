@@ -1,66 +1,76 @@
-from fastapi import APIRouter, Path, Query, HTTPException
-from sqlalchemy import text
-from typing import List, Annotated
-from models.db_models import ProdutosDB, em_categoria as cat_table, ImagesDB
-from models.schemas import produtos, em_categoria, categorias, images
-from main import db_dependency
+from fastapi import APIRouter, Query, Path
+from database import DbSessionDep, Session
+from typing import Dict, Tuple, List, Union, Annotated, Set
 
-router = APIRouter(prefix='/produtos', tags=['produtos'])
+from core import apply_filters_from_model, get_pagination_response, PaginatedResponse, DEFAULT_NON_FILTER_FIELDS
+from models.schemas import produtos
+from models.db_models import ProdutosDB, EmCategoriaDB
 
-@router.get('/')
-async def get_produtos(
-    db: db_dependency
-) -> List[produtos.ProdutosResponse]|produtos.ProdutosResponse:
-    db_produto = db.query(ProdutosDB)
-    return db_produto
+router = APIRouter(prefix="/produtos", tags=["Produtos"])
+
+PRODUTOS_FILTER_CONFIG: Dict[str, Tuple[str, str]] = {
+    "id_produto": ("id_produto", "eq"),
+    "descritivo_produto": ("descritivo_produto", "contains"),
+    "descricao_produto": ("descricao_produto", "contains"),
+    "desconto_produto": ("desconto_produto", "eq"),
+    "ativo_produto": ("ativo_produto", "eq")
+}
+
+PRODUTOS_NON_FILTER_FIELDS: Set[str] = {"limit", "offset", "sort_by", "order_by", "preco_produto", "estoque_produto", "imagens", "categorias"}
+
+@router.get('/', response_model=PaginatedResponse[produtos.ProdutoResponse])
+def get_produtos(
+    query: produtos.ProdutoQuery = produtos.ProdutoQuery.as_query(),
+    db: Session = DbSessionDep
+):
+    stmt = db.query(ProdutosDB)
+    stmt = apply_filters_from_model(
+        stmt,
+        ProdutosDB,
+        query,
+        PRODUTOS_FILTER_CONFIG,
+        PRODUTOS_NON_FILTER_FIELDS
+    )
+    total = stmt.count()
+    resp_value = stmt.order_by(ProdutosDB.id_produto.asc()).offset(query.offset).limit(query.limit).all()
+    return get_pagination_response(query.limit, query.offset, total, resp_value)
 
 @router.post('/')
-async def post_produtos(
-    produto: produtos.ProdutosCreate, 
-    db: db_dependency
+def post_produtos(
+    body: produtos.ProdutoCreate,
+    db: Session = DbSessionDep
 ):
-    db_produto = ProdutosDB(**produto.model_dump())
-    db.add(db_produto)
+    db.add(ProdutosDB(**body.model_dump()))
     db.commit()
 
-@router.patch('/')
-async def update_produto(
-    id_prod: Annotated[int, Query(description="Id do produto")],
-    produto: produtos.ProdutosPatch,
-    db: db_dependency 
+@router.patch('/', response_model=produtos.ProdutoResponse)
+def patch_categorias(
+    id_categoria: Annotated[int, Query(description="ID do produto que será alterado")],
+    body: produtos.ProdutoUpdate,
+    db: Session = DbSessionDep
 ):
-    print(produto.model_dump(exclude_defaults=True))
-    return
+    dump_class = body.model_dump(exclude_unset=True)
+    stmt = db.get(ProdutosDB, id_categoria)
+    for k, val in dump_class.items():
+        if hasattr(stmt, k):
+            setattr(stmt, k, val)
+    db.commit()    
 
 @router.delete('/')
-async def delete_produto(
-    id_prod: Annotated[int, Query(description="Id do produto")],
-    db: db_dependency
+def delete_categorias(
+    id_categoria: Annotated[int, Query(description="ID do produtos que será deletado")],
+    db: Session = DbSessionDep
 ):
-    produto = db.get(ProdutosDB, id_prod)
-    db.delete(produto)
+    stmt = db.get(ProdutosDB, id_categoria)
+    db.delete(stmt)
     db.commit()
 
-@router.get('/{id_prod}')
-async def get_produto(
-    id_prod: Annotated[int, Path(description="Id do produto")],
-    db: db_dependency
-) -> produtos.ProdutosResponse:
-    stmt = db.get(ProdutosDB, id_prod)
-    return stmt
-
-@router.post('/add-categoria')
-async def insert_categoria_produto(
-    em_cat: em_categoria.EmCategoriaCreate,
-    db: db_dependency
+@router.post('/{id_produto}/{id_categoria}')
+def add_categoria_produto(
+    id_produto: Annotated[int, Path(description="ID do produto")],
+    id_categoria: Annotated[int, Path(description="ID da categoria")],
+    db: Session = DbSessionDep
 ):
-    db.execute(text("INSERT INTO em_categoria (id_categoria, id_produto) VALUES (:id_categoria, :id_produto)"), {"id_categoria": em_cat.id_categoria, "id_produto": em_cat.id_produto})
+    stmt = EmCategoriaDB(id_prod_fk = id_produto, id_categoria_fk = id_categoria)
+    db.add(stmt)
     db.commit()
-    
-@router.get('/{id_prod}/categorias')
-async def get_categorias_produto(
-    id_prod: Annotated[int, Path(description="Id do produto")],
-    db: db_dependency
-) -> list[em_categoria.ProdutoCategoriasResponse]:
-    query = db.query(ProdutosDB)
-    return query

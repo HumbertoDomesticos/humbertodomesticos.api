@@ -1,34 +1,57 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr, computed_field
-from passlib.context import CryptContext
-from typing import Annotated, List, Any
-from datetime import date
-from .dependecies import convert_to_optional
+from pydantic import Field, computed_field, EmailStr, SecretStr, BaseModel as Base
+from typing import List, Optional
+from core import QueryMeta, get_password_hash
+from .telefones import TelefoneResponse
+from .enderecos import EnderecoResponse
+import enum
 
-class UsuarioBase(BaseModel):
-    nome_usuario: Annotated[str, Field(description="Nome que será mostrado no perfil do usuário")]
-    email_usuario: Annotated[EmailStr, Field(description="Email do usuário")]
-    data_nasc_usuario: Annotated[date, Field(description="Data de nascimento do usuário")]
-    cpf_usuario: Annotated[str, Field(description="Cpf do usuário", default="00000000000")]
+class GeneroEnum(enum.StrEnum):
+    MASCULINO = enum.auto()
+    FEMININO = enum.auto()
+    OUTRO = enum.auto()
 
-class UsuarioResponse(UsuarioBase):
-    ativo_usuario: Annotated[bool, Field(description="Se a conta do usuário ainda está ativa")]
-    def model_post_init(self, __context):
-        self.cpf_usuario = "{}.{}.{}-{}".format(self.cpf_usuario[:3], self.cpf_usuario[3:6], self.cpf_usuario[6:9], self.cpf_usuario[9:])
+class UsuarioBase(Base):
+    nome_usuario: Optional[str] = Field(default=None, description="Nome do usuário", examples=["nome_usuario"])
+    email_usuario: Optional[EmailStr] = Field(default=None, description="Email do usuário")
+    genero_usuario: Optional[GeneroEnum] = Field(default=None, description="Gênero do usuário")
+    cpf_usuario: Optional[str] = Field(default=None, description="CPF do usuário", examples=["12345678901"], min_length=11, max_length=11)
 
-class UsuarioCreate(UsuarioBase):
-    senha_usuario_temp: Annotated[str, Field(description="Senha do usuário", exclude=True)]
+class UsuarioId(Base):
+    id_usuario: Optional[int] = Field(default=None, description="Id do usuário")
+
+class UsuarioResponse(UsuarioBase, UsuarioId):
+    telefones: Optional[List[TelefoneResponse]] = Field(default=None, description="Telefones do usuário")
+    enderecos: Optional[List[EnderecoResponse]] = Field(default=None, description="Endereços do usuário")
     
+    cpf_usuario: Optional[str] = Field(exclude=True)
+
     @computed_field
     @property
-    def senha_usuario(self) -> Annotated[str, Field(description="Senha do usuário em hash BCRYPT")]:
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.hash(self.senha_usuario_temp) # TODO Senha deve ser hasheada antes de ser enviada ao banco
+    def cpf(self) -> Optional[str]:
+        if self.cpf_usuario is None:
+            return None
+        else:
+            return "{}.{}.{}-{}".format(
+                self.cpf_usuario[:3],
+                self.cpf_usuario[3:6],
+                self.cpf_usuario[6:9],
+                self.cpf_usuario[9:]
+            )
 
-class UsuarioPatch(UsuarioCreate):
-    __annotations__ = convert_to_optional(UsuarioCreate)
-    
-class UsuarioAuth(BaseModel):
-    email_usuario: Annotated[EmailStr, Field(description="Email do usuário")]
-    
-class UsuarioAuthLogin(UsuarioAuth):
-    senha_usuario: Annotated[str, Field(description="Senha do usuário")]
+class UsuarioQuery(QueryMeta, UsuarioBase, UsuarioId):
+    pass
+
+class UsuarioCreate(UsuarioBase):
+    senha_usuario_temp: Optional[str] = Field(default=None, description="Senha do usuário em plain text", exclude=True)
+
+    @computed_field
+    @property
+    def senha_usuario(self) -> str:
+        return get_password_hash(self.senha_usuario_temp)
+
+class UsuarioUpdate(UsuarioCreate):
+    descritivo_usuario: Optional[str] = Field(default=None, description="Nome da Usuario")
+
+class UsuarioVerify(Base):
+    email_usuario: EmailStr = Field(description="Email do usuário")
+    senha_usuario: str = Field(description="Senha do usuário em plain text")

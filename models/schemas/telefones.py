@@ -1,15 +1,22 @@
-from pydantic import BaseModel, Field
-from typing import Annotated
-from .dependecies import convert_to_optional
+from pydantic import Field, computed_field, BaseModel as Base
+from typing import List, Optional
 
-class TelefonesBase(BaseModel):
-    numero_telefone: Annotated[str, Field(description="Número do telefone")]
+class TelefoneBase(Base):
+    numero_telefone: Optional[str] = Field(default=None, description="Número do telefone", examples=["12345678901"], min_length=11, max_length=11)
 
-class EnderecosResponse(TelefonesBase):
-    id_telefone: Annotated[int, Field(description="Id do telefone")]
+class TelefoneId(Base):
+    id_telefone: Optional[int] = Field(default=None, description="Id do telefone")
 
-class EnderecosCreate(TelefonesBase):
+class TelefoneResponse(TelefoneBase):
+    numero_telefone: Optional[str] = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def telefone(self) -> str:
+        return "({}) {}-{}".format(
+            self.numero_telefone[:2],
+            self.numero_telefone[2:7],
+            self.numero_telefone[7:])
+    
+class TelefoneCreate(TelefoneBase):
     pass
-
-class EnderecosPatch(TelefonesBase):
-    __annotations__ = convert_to_optional(TelefonesBase)

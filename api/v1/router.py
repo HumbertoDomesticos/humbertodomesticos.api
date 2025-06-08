@@ -1,10 +1,12 @@
 from fastapi import APIRouter
-from .endpoints.produtos import router as prod_router
-from .endpoints.categorias import router as cat_router
+from .endpoints.categorias import router as categoria_router
+from .endpoints.produtos import router as produto_router
 from .endpoints.usuarios import router as usuario_router
+from .endpoints.pedidos import router as pedido_router
 
 router = APIRouter()
 
-router.include_router(prod_router)
-router.include_router(cat_router)
+router.include_router(categoria_router)
+router.include_router(produto_router)
 router.include_router(usuario_router)
+router.include_router(pedido_router)
