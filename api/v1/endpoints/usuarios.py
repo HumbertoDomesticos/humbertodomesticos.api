@@ -17,7 +17,9 @@ USUARIOS_FILTER_CONFIG: Dict[str, Tuple[str, str]] = {
 
 USUARIOS_NON_FILTER_FIELDS: Set[str] = {"limit", "offset", "sort_by", "order_by", "telefones", "enderecos"}
 
-@router.get('/', response_model=PaginatedResponse[usuarios.UsuarioResponse])
+@router.get('/',
+            response_model=PaginatedResponse[usuarios.UsuarioResponse],
+            description="Busca os usuários")
 def get_usuarios(
     query: usuarios.UsuarioQuery = usuarios.UsuarioQuery.as_query(),
     db: Session = DbSessionDep
@@ -34,19 +36,21 @@ def get_usuarios(
     resp_value = stmt.order_by(UsuariosDB.id_usuario.asc()).offset(query.offset).limit(query.limit).all()
     return get_pagination_response(query.limit, query.offset, total, resp_value)
 
-@router.post('/')
+@router.post('/', 
+             response_model=usuarios.UsuarioResponse,
+             description="Cria um novo usuário")
 def post_usuarios(
     body: usuarios.UsuarioCreate,
     db: Session = DbSessionDep
 ):
-    if isinstance(body, list):
-        for usuario in body:
-            db.add(UsuariosDB(**usuario.model_dump()))
-    else:
-        db.add(UsuariosDB(**body))
+    db.add(UsuariosDB(**body.model_dump()))
     db.commit()
+    stmt = db.query(UsuariosDB).order_by(UsuariosDB.id_usuario.desc()).limit(1)
+    return stmt.first()
 
-@router.patch('/', response_model=usuarios.UsuarioCreate)
+@router.patch('/', 
+              response_model=usuarios.UsuarioCreate,
+              description="Altera os dados de um usuário")
 def patch_categorias(
     id_categoria: Annotated[int, Query(description="ID do usuário que será alterado")],
     body: usuarios.UsuarioCreate,
@@ -59,7 +63,9 @@ def patch_categorias(
             setattr(stmt, k, val)
     db.commit()    
 
-@router.delete('/')
+@router.delete('/', 
+               response_model=str,
+               description="Deleta um usuário")
 def delete_categorias(
     id_usuario: Annotated[int, Query(description="ID do usuário que será deletado")],
     db: Session = DbSessionDep
@@ -67,36 +73,51 @@ def delete_categorias(
     stmt = db.get(UsuariosDB, id_usuario)
     db.delete(stmt)
     db.commit()
+    return f"Usuário com id: {id_usuario} foi removido"
 
-@router.post('/{id_usuario}/add-endereco')
+@router.post('/{id_usuario}/add-endereco',
+             response_model=usuarios.UsuarioResponse|bool,
+             description="Adiciona um endereço do usuário")
 def add_endereco_usuario(
     id_usuario: Annotated[int, Path(description="Id do usuário que terá o endereço")],
     body: enderecos.EnderecoCreate,
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
+    if stmt is None:
+        return False
     if len(stmt.enderecos) == 0:
         stmt = EnderecosDB(id_usuario_fk = id_usuario, padrao_endereco = True, **body.model_dump())
     else:
         stmt = EnderecosDB(id_usuario_fk = id_usuario, padrao_endereco = False, **body.model_dump())
     db.add(stmt)
     db.commit()
+    db.refresh(stmt)
+    return stmt
 
-@router.post('/{id_usuario}/{id_endereco}')
+@router.post('/{id_usuario}/{id_endereco}',
+             response_model=usuarios.UsuarioResponse|bool,
+             description="Torna um endereço em padrão")
 def alter_endereco_padrao(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     id_endereco: Annotated[int, Path(description="Id do endereço")],
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
+    if stmt is None:
+        return False
     for endereco in stmt.enderecos:
         if endereco.id_endereco == id_endereco:
             endereco.padrao_endereco = True
         else:
             endereco.padrao_endereco = False
     db.commit()
+    db.refresh(stmt)
+    return stmt
 
-@router.post('/{id_usuario}/add-telefone')
+@router.post('/{id_usuario}/add-telefone',
+             response_model=usuarios.UsuarioResponse,
+             description="Adiciona um telefone ao usuário")
 def add_telefones_usuario(
     id_usuario: Annotated[int, Path(description="Id do usuário que terá o endereço")],
     body: telefones.TelefoneCreate,
@@ -105,8 +126,12 @@ def add_telefones_usuario(
     stmt = TelefonesDB(id_usuario_fk = id_usuario, **body.model_dump())
     db.add(stmt)
     db.commit()
+    stmt = db.get(UsuariosDB, id_usuario)
+    return stmt
 
-@router.post('/login', response_model=usuarios.UsuarioResponse|bool)
+@router.post('/login', 
+             response_model=usuarios.UsuarioResponse|bool,
+             description="Tenta fazer o login do usuário")
 def verify_login(
     body: usuarios.UsuarioVerify,
     db: Session = DbSessionDep
@@ -118,7 +143,9 @@ def verify_login(
     else:
         return False
     
-@router.post('/admin', response_model=usuarios.UsuarioResponse|bool)
+@router.post('/admin', 
+             response_model=usuarios.UsuarioResponse|bool,
+             description="Tenta fazer login como admin")
 def verify_admin(
     body: usuarios.UsuarioVerify,
     db: Session = DbSessionDep

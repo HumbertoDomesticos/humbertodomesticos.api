@@ -20,15 +20,23 @@ PEDIDOS_FILTER_CONFIG: Dict[str, Tuple[str, str]] = {
 
 PEDIDOS_NON_FILTER_FIELDS: Set[str] = {"limit", "offset", "sort_by", "order_by"}
 
-@router.get('/{id_usuario}', description="Busca todos os pedidos do usuario", response_model=List[pedidos.PedidoResponse])
+@router.get('/{id_usuario}', 
+            response_model=List[pedidos.PedidoResponse]|bool,
+            description="Busca todos os pedidos do usuario")
 def get_pedidos_usuario(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
-    return stmt.pedidos
+    if stmt is not None:
+        return stmt.pedidos
+    else:
+        return False
+        
 
-@router.post('/{id_usuario}', description="Cria um pedido para o usuário", response_model=pedidos.PedidoResponse)
+@router.post('/{id_usuario}',
+             response_model=pedidos.PedidoResponse,
+             description="Cria um pedido para o usuário")
 def create_pedido_usuario(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     db: Session = DbSessionDep
@@ -37,12 +45,16 @@ def create_pedido_usuario(
     db.add(stmt)
     db.commit()
 
-@router.get('/{id_usuario}/pedido-aberto', description="Retorna o último pedido aberto do usuário, caso não haja, ele é criado", response_model=pedidos.PedidoResponse)
+@router.get('/{id_usuario}/pedido-aberto', 
+            response_model=pedidos.PedidoResponse|bool,
+            description="Retorna o último pedido aberto do usuário, caso não haja, ele é criado") 
 def get_pedido_aberto(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
+    if stmt is None:
+        return False
     if len(stmt.pedidos) != 0 and stmt.pedidos[-1].status_pedido == pedidos.StatusPedidoEnum.EM_CARRINHO:
         return stmt.pedidos[-1]
     else:
@@ -50,7 +62,9 @@ def get_pedido_aberto(
         db.refresh(stmt)
         return stmt.pedidos[-1]
     
-@router.post('/{id_usuario}/add-produto/{id_produto}/{quantidade}', description="Adiciona um produto ao pedido aberto do usuário", response_model=pedidos.PedidoResponse)
+@router.post('/{id_usuario}/add-produto/{id_produto}/{quantidade}', 
+             response_model=pedidos.PedidoResponse|bool,
+             description="Adiciona um produto ao pedido aberto do usuário")
 def add_produto_em_pedido(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     id_produto: Annotated[int, Path(description="Id do produto")],
@@ -58,6 +72,8 @@ def add_produto_em_pedido(
     db: Session = DbSessionDep
 ):
     pedido = get_pedido_aberto(id_usuario, db)
+    if not pedido:
+        return False
     if len(pedido.produtos_em_pedido) == 0 or next((produto for produto in pedido.produtos_em_pedido if produto.id_produto_fk == id_produto), None) is None:
         stmt = EmPedidoDB(id_pedido_fk = pedido.id_pedido, id_produto_fk = id_produto, quant_produto_em_pedido = quantidade)
         db.add(stmt)
@@ -71,7 +87,9 @@ def add_produto_em_pedido(
     db.refresh(pedido)
     return pedido
 
-@router.post('/{id_usuario}/alt-quant/{id_produto}/{quantidade}', description="Altera a quantidade de um produto ou o remove do pedido do usuário", response_model=pedidos.PedidoResponse|bool)
+@router.post('/{id_usuario}/alt-quant/{id_produto}/{quantidade}',
+             response_model=pedidos.PedidoResponse|bool,
+             description="Altera a quantidade de um produto ou o remove do pedido do usuário")
 def alter_quant_produto_em_pedido(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     id_produto: Annotated[int, Path(description="Id do produto")],
@@ -79,6 +97,8 @@ def alter_quant_produto_em_pedido(
     db: Session = DbSessionDep
 ):
     pedido = get_pedido_aberto(id_usuario, db)
+    if not pedido:
+        return False
     for produto in pedido.produtos_em_pedido:
         if produto.id_produto_fk == id_produto and produto.quant_produto_em_pedido != quantidade and quantidade > 0:
             produto.quant_produto_em_pedido = quantidade
@@ -96,13 +116,17 @@ def alter_quant_produto_em_pedido(
             return False
     
     
-@router.post('/{id_usuario}/fechar-pedido', description="Passa o pedido para 'processando_pagamento'", response_model=pedidos.ProdutoResponse|bool)
+@router.post('/{id_usuario}/fechar-pedido', 
+             response_model=pedidos.ProdutoResponse|bool,
+             description="Passa o pedido para 'processando_pagamento'") 
 def close_pedido_usuario(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     tipo_pagamento: pedidos.TiposPagamentoEnum = pedidos.TiposPagamentoEnum.NENHUM,
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
+    if not stmt:
+        return False
     if len(stmt.pedidos) != 0 and stmt.pedidos[-1].status_pedido == pedidos.StatusPedidoEnum.EM_CARRINHO:
         pedido_obj = stmt.pedidos[-1]
         pedido_obj.status_pedido = pedidos.StatusPedidoEnum.PROCESSANDO_PAGAMENTO
@@ -116,7 +140,9 @@ def close_pedido_usuario(
     else:
         return False
     
-@router.post('/{id_usuario}/alterar-pedido', description="Altera tipo de pagamento e status no pedido", response_model=pedidos.ProdutoResponse|bool)
+@router.post('/{id_usuario}/alterar-pedido', 
+             response_model=pedidos.ProdutoResponse|bool,
+             description="Altera tipo de pagamento e status no pedido")
 def update_pedido_usuario(
     id_usuario: Annotated[int, Path(description="Id do usuário")],
     tipo_pagamento: pedidos.TiposPagamentoEnum = pedidos.TiposPagamentoEnum.NENHUM,
@@ -124,6 +150,8 @@ def update_pedido_usuario(
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
+    if stmt is None:
+        return False
     if len(stmt.pedidos) != 0 and stmt.pedidos[-1].status_pedido == pedidos.StatusPedidoEnum.EM_CARRINHO:
         pedido_obj = stmt.pedidos[-1]
         pedido_obj.tipo_pagamento = tipo_pagamento if tipo_pagamento != pedidos.TiposPagamentoEnum.NENHUM else pedido_obj.tipo_pagamento

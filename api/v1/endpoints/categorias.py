@@ -13,7 +13,9 @@ CATEGORIAS_FILTER_CONFIG: Dict[str, Tuple[str, str]] = {
     "descritivo_categoria": ("descritivo_categoria", "contains")
 }
 
-@router.get('/', response_model=PaginatedResponse[categorias.CategoriaResponse])
+@router.get('/', 
+            response_model=PaginatedResponse[categorias.CategoriaResponse],
+            description="Busca as categorias")
 def get_categorias(
     query: categorias.CategoriaQuery = categorias.CategoriaQuery.as_query(),
     db: Session = DbSessionDep
@@ -30,7 +32,9 @@ def get_categorias(
     resp_value = stmt.order_by(CategoriasDB.id_categoria.asc()).offset(query.offset).limit(query.limit).all()
     return get_pagination_response(query.limit, query.offset, total, resp_value)
 
-@router.post('/')
+@router.post('/', 
+             response_model=categorias.CategoriaResponse, 
+             description="Cria uma nova categoria")
 def post_categorias(
     body: Union[List[categorias.CategoriaCreate], categorias.CategoriaCreate],
     db: Session = DbSessionDep
@@ -39,10 +43,14 @@ def post_categorias(
         for categoria in body:
             db.add(CategoriasDB(**categoria.model_dump()))
     else:
-        db.add(CategoriasDB(**body))
+        db.add(CategoriasDB(**body.model_dump()))
     db.commit()
+    stmt = db.query(CategoriasDB).order_by(CategoriasDB.id_categoria.desc()).limit(1)
+    return stmt.first()
 
-@router.patch('/', response_model=categorias.CategoriaResponse)
+@router.patch('/', 
+              response_model=categorias.CategoriaResponse,
+              description="Altera os dados de uma categoria")
 def patch_categorias(
     id_categoria: Annotated[int, Query(description="ID da categoria que será alterada")],
     body: categorias.CategoriaUpdate,
@@ -54,8 +62,12 @@ def patch_categorias(
         if hasattr(stmt, k):
             setattr(stmt, k, val)
     db.commit()    
+    db.refresh(stmt)
+    return stmt
 
-@router.delete('/')
+@router.delete('/',
+               response_model=str,
+               description="Deleta uma categoria")
 def delete_categorias(
     id_categoria: Annotated[int, Query(description="ID da categoria que será deletada")],
     db: Session = DbSessionDep
@@ -63,3 +75,4 @@ def delete_categorias(
     stmt = db.get(CategoriasDB, id_categoria)
     db.delete(stmt)
     db.commit()
+    return f"Categoria com id: {id_categoria} foi removido"

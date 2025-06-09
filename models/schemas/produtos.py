@@ -49,5 +49,5 @@ class ProdutoQuery(QueryMeta, ProdutoBase, ProdutoId):
 class ProdutoCreate(ProdutoBase):
     imagens: List[ImagemURL] = Field(description="Imagens do produto")
 
-class ProdutoUpdate(ProdutoCreate):
-    descritivo_produto: Optional[str] = Field(default=None, description="Nome do produto")
+class ProdutoUpdate(ProdutoBase):
+    pass
