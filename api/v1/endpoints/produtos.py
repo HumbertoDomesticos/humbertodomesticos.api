@@ -58,10 +58,16 @@ def patch_produtos(
 ):
     dump_class = body.model_dump(exclude_unset=True)
     stmt = db.get(ProdutosDB, id_produto)
+    if not stmt:
+        return None
+        
     for k, val in dump_class.items():
         if hasattr(stmt, k):
             setattr(stmt, k, val)
-    db.commit()    
+    
+    db.commit()
+    db.refresh(stmt)
+    return stmt
     
 @router.post('/{id_produto}/add-imagem',
              response_model=produtos.ProdutoResponse,
