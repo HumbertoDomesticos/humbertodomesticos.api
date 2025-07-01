@@ -108,6 +108,7 @@ class UsuariosDB(Base):
     email_usuario: Mapped[str] = mapped_column(String(200))
     senha_usuario: Mapped[str] = mapped_column(String(1000))
     genero_usuario: Mapped[GeneroEnum] = mapped_column(Enum(GeneroEnum))
+    data_nascimento: Mapped[datetime.date] = mapped_column(Date, nullable=True)
     cpf_usuario: Mapped[str] = mapped_column(String(11))
     admin_usuario: Mapped[bool] = mapped_column(default=False)
     

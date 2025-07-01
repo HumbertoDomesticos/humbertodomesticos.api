@@ -49,33 +49,41 @@ def post_usuarios(
     return stmt.first()
 
 @router.patch('/', 
-              response_model=usuarios.UsuarioCreate,
+              response_model=usuarios.UsuarioResponse,
               description="Altera os dados de um usuário")
-def patch_categorias(
-    id_categoria: Annotated[int, Query(description="ID do usuário que será alterado")],
+def patch_usuario(
+    id_usuario: Annotated[int, Query(description="ID do usuário que será alterado")],
     body: usuarios.UsuarioCreate,
     db: Session = DbSessionDep
 ):
     dump_class = body.model_dump(exclude_unset=True)
-    stmt = db.get(UsuariosDB, id_categoria)
+    stmt = db.get(UsuariosDB, id_usuario)
+    if not stmt:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
     for k, val in dump_class.items():
         if hasattr(stmt, k):
             setattr(stmt, k, val)
-    db.commit()    
+    
+    db.commit()
+    db.refresh(stmt)
+    return stmt
 
 @router.delete('/', 
                response_model=str,
                description="Deleta um usuário")
-def delete_categorias(
+def delete_usuario(
     id_usuario: Annotated[int, Query(description="ID do usuário que será deletado")],
     db: Session = DbSessionDep
 ):
     stmt = db.get(UsuariosDB, id_usuario)
+    if not stmt:
+        return f"Usuário com id: {id_usuario} não encontrado"
     db.delete(stmt)
     db.commit()
     return f"Usuário com id: {id_usuario} foi removido"
 
-@router.post('/{id_usuario}/add-endereco',
+@router.post('/usuarios/{id_usuario}/enderecos',
              response_model=usuarios.UsuarioResponse|bool,
              description="Adiciona um endereço do usuário")
 def add_endereco_usuario(
@@ -83,17 +91,24 @@ def add_endereco_usuario(
     body: enderecos.EnderecoCreate,
     db: Session = DbSessionDep
 ):
-    stmt = db.get(UsuariosDB, id_usuario)
-    if stmt is None:
+    usuario = db.get(UsuariosDB, id_usuario)
+    if usuario is None:
         return False
-    if len(stmt.enderecos) == 0:
-        stmt = EnderecosDB(id_usuario_fk = id_usuario, padrao_endereco = True, **body.model_dump())
-    else:
-        stmt = EnderecosDB(id_usuario_fk = id_usuario, padrao_endereco = False, **body.model_dump())
-    db.add(stmt)
+    
+    # Verifica se já existe algum endereço padrão
+    has_padrao = any(endereco.padrao_endereco for endereco in usuario.enderecos)
+    
+    # Cria novo endereço
+    novo_endereco = EnderecosDB(
+        id_usuario_fk=id_usuario,
+        padrao_endereco=not has_padrao,
+        **body.model_dump()
+    )
+    
+    db.add(novo_endereco)
     db.commit()
-    db.refresh(stmt)
-    return stmt
+    db.refresh(novo_endereco)
+    return usuario
 
 @router.post('/{id_usuario}/{id_endereco}',
              response_model=usuarios.UsuarioResponse|bool,
@@ -115,19 +130,27 @@ def alter_endereco_padrao(
     db.refresh(stmt)
     return stmt
 
-@router.post('/{id_usuario}/add-telefone',
+@router.post('/usuarios/{id_usuario}/telefones',
              response_model=usuarios.UsuarioResponse,
              description="Adiciona um telefone ao usuário")
-def add_telefones_usuario(
-    id_usuario: Annotated[int, Path(description="Id do usuário que terá o endereço")],
+def add_telefone_usuario(
+    id_usuario: Annotated[int, Path(description="Id do usuário que terá o telefone")],
     body: telefones.TelefoneCreate,
     db: Session = DbSessionDep
 ):
-    stmt = TelefonesDB(id_usuario_fk = id_usuario, **body.model_dump())
-    db.add(stmt)
+    usuario = db.get(UsuariosDB, id_usuario)
+    if usuario is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    novo_telefone = TelefonesDB(
+        id_usuario_fk=id_usuario,
+        **body.model_dump()
+    )
+    
+    db.add(novo_telefone)
     db.commit()
-    stmt = db.get(UsuariosDB, id_usuario)
-    return stmt
+    db.refresh(usuario)
+    return usuario
 
 @router.post('/login', 
              response_model=usuarios.UsuarioResponse|bool,

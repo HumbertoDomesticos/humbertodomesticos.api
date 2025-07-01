@@ -1,4 +1,5 @@
 from pydantic import Field, computed_field, EmailStr, SecretStr, BaseModel as Base
+from datetime import date
 from typing import List, Optional
 from core import QueryMeta, get_password_hash
 from .telefones import TelefoneResponse
@@ -14,6 +15,7 @@ class UsuarioBase(Base):
     nome_usuario: Optional[str] = Field(default=None, description="Nome do usuário", examples=["nome_usuario"])
     email_usuario: Optional[EmailStr] = Field(default=None, description="Email do usuário")
     genero_usuario: Optional[GeneroEnum] = Field(default=None, description="Gênero do usuário")
+    data_nascimento: Optional[date] = Field(default=None, description="Data de nascimento do usuário (YYYY-MM-DD)")
     cpf_usuario: Optional[str] = Field(default=None, description="CPF do usuário", examples=["12345678901"], min_length=11, max_length=11)
 
 class UsuarioId(Base):
@@ -24,6 +26,14 @@ class UsuarioResponse(UsuarioBase, UsuarioId):
     enderecos: Optional[List[EnderecoResponse]] = Field(default=None, description="Endereços do usuário")
     
     cpf_usuario: Optional[str] = Field(exclude=True)
+    data_nascimento: Optional[date] = Field(exclude=True)
+
+    @computed_field
+    @property
+    def data_nascimento_formatada(self) -> Optional[str]:
+        if self.data_nascimento is None:
+            return None
+        return self.data_nascimento.strftime('%d/%m/%Y')
 
     @computed_field
     @property
