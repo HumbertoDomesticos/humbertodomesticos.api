@@ -83,7 +83,7 @@ def delete_usuario(
     db.commit()
     return f"Usuário com id: {id_usuario} foi removido"
 
-@router.post('/usuarios/{id_usuario}/enderecos',
+@router.post('/{id_usuario}/add-endereco',
              response_model=usuarios.UsuarioResponse|bool,
              description="Adiciona um endereço do usuário")
 def add_endereco_usuario(
@@ -130,7 +130,7 @@ def alter_endereco_padrao(
     db.refresh(stmt)
     return stmt
 
-@router.post('/usuarios/{id_usuario}/telefones',
+@router.post('/{id_usuario}/telefones',
              response_model=usuarios.UsuarioResponse,
              description="Adiciona um telefone ao usuário")
 def add_telefone_usuario(
