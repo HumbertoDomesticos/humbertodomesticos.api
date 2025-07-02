@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Query, Path
+from fastapi import APIRouter, Query, Path, HTTPException
 from database import DbSessionDep, Session
 from typing import Dict, Tuple, List, Union, Annotated, Set
 
 from core import apply_filters_from_model, get_pagination_response, PaginatedResponse, DEFAULT_NON_FILTER_FIELDS, verify_hash
-from models.schemas import usuarios, telefones, enderecos, pedidos
-from models.db_models import UsuariosDB, TelefonesDB, EnderecosDB, PedidosDB
+from models.schemas import usuarios, telefones, enderecos
+from models.db_models import UsuariosDB, TelefonesDB, EnderecosDB
 
 router = APIRouter(prefix="/usuarios", tags=["Usuários"])
 
